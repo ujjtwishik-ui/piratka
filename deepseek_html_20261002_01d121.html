@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Ключ и Дверь</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#000;color:#fff;
+    font-family:"Segoe UI",Roboto,Arial,sans-serif;user-select:none;-webkit-user-select:none;
+    touch-action:none}
+  #c{display:block;width:100vw;height:100vh}
+
+  #hud{position:fixed;top:14px;left:16px;font-size:15px;line-height:1.6;z-index:10;
+    text-shadow:0 0 8px #000,0 0 3px #000;pointer-events:none;opacity:.92}
+  #hud b{color:#ffd23f}
+
+  #cross{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;
+    border-radius:50%;background:#fff;opacity:.5;z-index:9;pointer-events:none;
+    box-shadow:0 0 4px #000}
+
+  #msg{position:fixed;left:50%;bottom:22%;transform:translateX(-50%);font-size:20px;
+    text-align:center;z-index:10;opacity:0;transition:opacity .25s;pointer-events:none;
+    text-shadow:0 0 10px #000,0 0 4px #000;max-width:90vw}
+  @media (max-width:640px){#msg{font-size:16px;bottom:28%}}
+
+  #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;
+    transition:opacity .8s ease;z-index:40}
+
+  /* кнопка режима управления */
+  #modeBtn{position:fixed;top:12px;right:12px;z-index:30;
+    background:rgba(20,20,30,.75);color:#cfe3ff;border:1px solid rgba(120,160,255,.5);
+    border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    box-shadow:0 0 20px rgba(60,120,255,.25);letter-spacing:.5px}
+  #modeBtn:active{transform:scale(.95)}
+
+  /* === сенсорное управление === */
+  #joy{position:fixed;left:24px;bottom:24px;width:130px;height:130px;border-radius:50%;
+    background:radial-gradient(circle,rgba(80,120,200,.12),rgba(80,120,200,.03) 70%,transparent);
+    border:2px solid rgba(140,180,255,.25);z-index:15;display:none;touch-action:none}
+  #joyKnob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;
+    border-radius:50%;background:radial-gradient(circle at 35% 30%,#eaf2ff,#6b8fd4);
+    box-shadow:0 0 20px rgba(120,170,255,.55),inset 0 -4px 10px rgba(0,0,0,.35);
+    transition:transform .05s}
+  #joy.active{border-color:rgba(180,220,255,.55)}
+  .hint-tap{position:fixed;right:24px;bottom:36px;z-index:15;font-size:12px;
+    color:rgba(200,220,255,.55);text-align:right;pointer-events:none;display:none;
+    text-shadow:0 0 6px #000;letter-spacing:.5px;line-height:1.4}
+
+  #hint{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;background:radial-gradient(circle at 50% 40%,#14141f,#000 72%);
+    cursor:pointer;text-align:center;padding:24px}
+  #hint h1{font-size:clamp(24px,5vw,46px);margin:0 0 16px;letter-spacing:3px;
+    text-shadow:0 0 24px #4af,0 0 6px #fff}
+  #hint p{margin:6px 0;opacity:.75;font-size:clamp(13px,2.2vw,17px)}
+  #hint .k{color:#ffd23f;font-weight:700}
+  #hint .go{margin-top:26px;font-size:clamp(15px,2.6vw,20px);color:#7CFC00;
+    animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* === скример === */
+  #scare{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+    flex-direction:column;background:#000;overflow:hidden;animation:bgflash .09s infinite}
+  #scare.on{display:flex}
+  @keyframes bgflash{0%,100%{background:#000}50%{background:#2a0000}}
+  #scare .face{width:min(60vh,60vw);height:auto;
+    animation:shk .05s infinite, fl .1s infinite;filter:drop-shadow(0 0 40px #f00)}
+  @keyframes shk{
+    0%{transform:translate(0,0) scale(1.02)}
+    25%{transform:translate(-9px,7px) scale(1.05)}
+    50%{transform:translate(8px,-8px) scale(1.01)}
+    75%{transform:translate(-6px,-5px) scale(1.06)}
+    100%{transform:translate(7px,6px) scale(1.03)}
+  }
+  @keyframes fl{
+    0%,100%{filter:contrast(1.5) hue-rotate(0) invert(0) drop-shadow(0 0 30px #f00)}
+    50%{filter:contrast(2.4) hue-rotate(-40deg) invert(1) drop-shadow(0 0 60px #f00)}
+  }
+  .sctext{position:absolute;bottom:5%;width:100%;text-align:center;z-index:2;padding:0 10px}
+  .w1{font-size:clamp(18px,4vw,42px);font-weight:900;color:#ff2b2b;letter-spacing:2px;
+    text-shadow:0 0 20px #f00,0 0 45px #900;animation:blink .3s infinite}
+  .w2{font-size:clamp(13px,2.4vw,23px);margin-top:12px;color:#fff;opacity:.92;letter-spacing:1px}
+  .cnt{margin-top:16px;font-size:clamp(26px,7vw,68px);font-weight:900;color:#fff;
+    font-family:"Courier New",monospace;text-shadow:0 0 25px #f00,0 0 60px #900}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.22}}
+
+  .glitchbar{position:fixed;left:0;right:0;z-index:101;pointer-events:none;mix-blend-mode:screen}
+
+  #crash{position:fixed;inset:0;z-index:200;background:#000;color:#0f0;
+    font-family:"Courier New",monospace;padding:26px;font-size:14px;line-height:1.5;
+    white-space:pre-wrap;overflow:hidden}
+  #hang{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:210;
+    background:#2b2b2b;border:2px solid #555;border-radius:10px;padding:26px 34px;
+    font-family:"Segoe UI",Arial,sans-serif;font-size:16px;color:#eee;text-align:center;
+    box-shadow:0 0 40px #000}
+  #hang .spin{display:inline-block;margin-right:10px;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="cross"></div>
+<div id="hud">
+  <div>Уровень: <b id="hLevel">1</b></div>
+  <div>Ключ: <b id="hKey">нет</b></div>
+</div>
+<div id="msg"></div>
+<div id="fade"></div>
+
+<button id="modeBtn">🖥️ PC</button>
+
+<div id="joy"><div id="joyKnob"></div></div>
+<div class="hint-tap" id="lookHint">Касайся справа —<br>чтобы осмотреться</div>
+
+<div id="hint">
+  <h1>КЛЮЧ И ДВЕРЬ</h1>
+  <p>Уровень 1 — найди ключ на полке и открой дверь.</p>
+  <p>Уровень 2 — найди ключ в тёмной комнате.</p>
+  <p id="ctrlHint">Управление: <span class="k">W A S D</span> — ходьба, <span class="k">мышь</span> — обзор</p>
+  <p>Ключ подбирается сам. Дверь открывается, если ключ у тебя.</p>
+  <div class="go">▶ НАЖМИ, ЧТОБЫ НАЧАТЬ</div>
+</div>
+
+<div id="scare">
+  <svg class="face" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="skin" cx="50%" cy="38%">
+        <stop offset="0%" stop-color="#f5ead6"/>
+        <stop offset="70%" stop-color="#c9bda6"/>
+        <stop offset="100%" stop-color="#7d7261"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="200" cy="200" rx="146" ry="188" fill="url(#skin)"/>
+    <path d="M60 200 L118 176 M340 200 L282 176 M110 110 L142 148 M290 110 L258 148 M200 30 L200 70"
+          stroke="#8b1414" stroke-width="4" fill="none" opacity="0.75"/>
+    <ellipse cx="134" cy="158" rx="44" ry="54" fill="#0d0d0d"/>
+    <ellipse cx="266" cy="158" rx="44" ry="54" fill="#0d0d0d"/>
+    <circle cx="134" cy="160" r="11" fill="#ff2222"/>
+    <circle cx="266" cy="160" r="11" fill="#ff2222"/>
+    <circle cx="134" cy="160" r="22" fill="#ff2222" opacity="0.25"/>
+    <circle cx="266" cy="160" r="22" fill="#ff2222" opacity="0.25"/>
+    <ellipse cx="200" cy="312" rx="94" ry="72" fill="#120000"/>
+    <path d="M112 262 L136 306 L160 262 L184 306 L208 262 L232 306 L256 262 L280 306 L288 262 Z"
+          fill="#e9e0cc"/>
+    <path d="M128 372 L152 332 L176 372 L200 332 L224 372 L248 332 L272 372 Z"
+          fill="#cfc4ad" opacity="0.85"/>
+  </svg>
+  <div class="sctext">
+    <div class="w1">ВЫ СКАЧАЛИ ПИРАТСКУЮ ИГРУ</div>
+    <div class="w2">ВСЕ ВАШИ ДАННЫЕ БУДУТ УДАЛЕНЫ</div>
+    <div class="cnt">Удаление через <span id="count">15</span></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* =========================================================
+   ОПРЕДЕЛЕНИЕ УСТРОЙСТВА
+   ========================================================= */
+var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+var isSmallScreen = Math.min(window.innerWidth, window.innerHeight) < 820;
+var ctrlMode = (isTouchDevice && isSmallScreen) ? 'mobile' : 'pc';
+
+/* =========================================================
+   RENDERER / СЦЕНА / КАМЕРА / СВЕТ
+   ========================================================= */
+var canvas   = document.getElementById('c');
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !isSmallScreen, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, isSmallScreen ? 1.5 : 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+var SHADOWS = !isSmallScreen;
+renderer.shadowMap.enabled = SHADOWS;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x08080e);
+scene.fog = new THREE.Fog(0x08080e, 8, 42);
+
+var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 200);
+camera.rotation.order = 'YXZ';
+scene.add(camera);
+
+var world = new THREE.Group();
+scene.add(world);
+
+var ambient = new THREE.AmbientLight(0xffffff, 0.45);
+scene.add(ambient);
+
+var hemi = new THREE.HemisphereLight(0x8fa8ff, 0x1a1a22, 0.35);
+scene.add(hemi);
+
+var torch = new THREE.PointLight(0xffe0b0, 1.1, 32, 1.8);
+torch.position.set(0, 4, 0);
+scene.add(torch);
+
+// фонарик-прожектор (дает тени и ощущение направленного света)
+var flashLight = new THREE.SpotLight(0xfff0cc, 1.6, 22, Math.PI / 5, 0.55, 1.5);
+flashLight.position.set(0, -0.05, 0.1);
+flashLight.target.position.set(0, -0.15, -1);
+if(SHADOWS){
+  flashLight.castShadow = true;
+  flashLight.shadow.mapSize.set(1024, 1024);
+  flashLight.shadow.camera.near = 0.2;
+  flashLight.shadow.camera.far  = 20;
+  flashLight.shadow.bias = -0.0015;
+}
+camera.add(flashLight);
+camera.add(flashLight.target);
+
+window.addEventListener('resize', function(){
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* =========================================================
+   ПРОЦЕДУРНЫЕ ТЕКСТУРЫ
+   ========================================================= */
+function noise(x, y){
+  var n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+function makeTex(kind, size){
+  size = size || 256;
+  var c = document.createElement('canvas');
+  c.width = c.height = size;
+  var ctx = c.getContext('2d');
+  var img = ctx.createImageData(size, size);
+  var d = img.data;
+
+  for(var y = 0; y < size; y++){
+    for(var x = 0; x < size; x++){
+      var i = (y * size + x) * 4;
+      var r, g, b;
+      var n1 = noise(x * 0.1, y * 0.1);
+      var n2 = noise(x * 0.05, y * 0.05);
+
+      if(kind === 'wall'){
+        // кирпич
+        var bh = size / 8, bw = size / 4;
+        var row = Math.floor(y / bh);
+        var off = (row % 2) * (bw / 2);
+        var bx = ((x + off) % bw);
+        var by = y % bh;
+        var mortar = (bx < 3 || by < 3) ? 1 : 0;
+        if(mortar){
+          r = 90 + n1 * 30; g = 85 + n2 * 25; b = 78 + n1 * 20;
+        } else {
+          r = 88 + n1 * 55; g = 46 + n2 * 30; b = 38 + n1 * 25;
+        }
+      } else if(kind === 'floor'){
+        r = 42 + n1 * 22; g = 38 + n2 * 20; b = 34 + n1 * 18;
+      } else if(kind === 'ceil'){
+        r = 26 + n1 * 16; g = 26 + n2 * 14; b = 32 + n1 * 16;
+      } else if(kind === 'wood'){
+        var grain = Math.sin(y * 0.35 + n1 * 3) * 0.5 + 0.5;
+        r = 90 + grain * 40 + n1 * 15;
+        g = 58 + grain * 25 + n2 * 12;
+        b = 32 + grain * 15 + n1 * 10;
+      } else if(kind === 'metal'){
+        r = 96 + n1 * 40; g = 96 + n2 * 38; b = 104 + n1 * 36;
+      } else if(kind === 'rust'){
+        var rust = n2 > 0.55 ? 1 : 0;
+        if(rust){ r = 130 + n1 * 40; g = 62 + n2 * 25; b = 32 + n1 * 20; }
+        else    { r = 62 + n1 * 25;  g = 58 + n2 * 22; b = 52 + n1 * 18; }
+      } else if(kind === 'blood'){
+        var bl = n1 > 0.35 ? 1 : 0;
+        if(bl){ r = 110 + n2 * 60; g = 8 + n1 * 16; b = 10 + n2 * 16; }
+        else  { r = 40 + n1 * 25;  g = 40 + n2 * 22; b = 48 + n1 * 18; }
+      } else {
+        r = g = b = n1 * 255;
+      }
+      d[i] = r; d[i+1] = g; d[i+2] = b; d[i+3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+
+  var tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+var TEX = {
+  wall:  makeTex('wall'),
+  floor: makeTex('floor'),
+  ceil:  makeTex('ceil'),
+  wood:  makeTex('wood'),
+  metal: makeTex('metal'),
+  rust:  makeTex('rust'),
+  blood: makeTex('blood')
+};
+
+/* =========================================================
+   МАТЕРИАЛЫ
+   ========================================================= */
+function matWall(){
+  var t = TEX.wall.clone(); t.needsUpdate = true;
+  t.repeat.set(2, 1.5);
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.95, metalness: 0.02 });
+}
+function matFloor(){
+  var t = TEX.floor.clone(); t.needsUpdate = true;
+  t.repeat.set(6, 6);
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.9, metalness: 0.05 });
+}
+function matCeil(){
+  var t = TEX.ceil.clone(); t.needsUpdate = true;
+  t.repeat.set(6, 6);
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 1, metalness: 0 });
+}
+function matWood(){
+  var t = TEX.wood.clone(); t.needsUpdate = true;
+  t.repeat.set(2, 1);
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.85, metalness: 0.05 });
+}
+function matDoor(color){
+  return new THREE.MeshStandardMaterial({ color: color, roughness: 0.7, metalness: 0.35 });
+}
+function matRust(){
+  var t = TEX.rust.clone(); t.needsUpdate = true;
+  t.repeat.set(2, 2);
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.95, metalness: 0.25 });
+}
+function matBlood(){
+  var t = TEX.blood.clone(); t.needsUpdate = true;
+  t.repeat.set(2, 2);
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.9, metalness: 0.1,
+    emissive: 0x220000 });
+}
+function matMetal(){
+  return new THREE.MeshStandardMaterial({ color: 0x9a9aa6, roughness: 0.55, metalness: 0.8 });
+}
+function matPillar(){
+  var t = TEX.wall.clone(); t.needsUpdate = true;
+  t.repeat.set(1, 2);
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.95, metalness: 0.05,
+    color: 0x9aa0b4 });
+}
+
+/* =========================================================
+   ЗВУК
+   ========================================================= */
+var actx = null;
+var audioNodes = { drone: null, droneGain: null };
+var dripTimerId = null;
+var creepTimerId = null;
+
+function initAudio(){
+  if(!actx){
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+  }
+  if(actx && actx.state === 'suspended') actx.resume();
+}
+
+function beep(freq, dur, vol, type){
+  if(!actx) return;
+  var o = actx.createOscillator(), g = actx.createGain();
+  o.type = type || 'square';
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(vol || 0.07, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + (dur || 0.08));
+  o.connect(g); g.connect(actx.destination);
+  o.start();
+  o.stop(actx.currentTime + (dur || 0.08) + 0.02);
+}
+
+// капля воды
+function drip(){
+  if(!actx) return;
+  var t = actx.currentTime;
+  var osc = actx.createOscillator();
+  osc.type = 'sine';
+  var f0 = 900 + Math.random() * 700;
+  osc.frequency.setValueAtTime(f0, t);
+  osc.frequency.exponentialRampToValueAtTime(180, t + 0.12);
+  var g = actx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(0.09, t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+  osc.connect(g); g.connect(actx.destination);
+  osc.start(t); osc.stop(t + 0.28);
+
+  // эхо-капля
+  if(Math.random() < 0.4){
+    setTimeout(function(){
+      if(!actx) return;
+      var t2 = actx.currentTime;
+      var o2 = actx.createOscillator(), g2 = actx.createGain();
+      o2.type = 'sine';
+      o2.frequency.setValueAtTime(f0 * 0.8, t2);
+      o2.frequency.exponentialRampToValueAtTime(160, t2 + 0.1);
+      g2.gain.setValueAtTime(0.0001, t2);
+      g2.gain.linearRampToValueAtTime(0.035, t2 + 0.005);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t2 + 0.18);
+      o2.connect(g2); g2.connect(actx.destination);
+      o2.start(t2); o2.stop(t2 + 0.22);
+    }, 180 + Math.random() * 250);
+  }
+}
+
+// скрип дерева / металла
+function creak(){
+  if(!actx) return;
+  var t = actx.currentTime;
+  var osc = actx.createOscillator();
+  osc.type = 'sawtooth';
+  var f0 = 60 + Math.random() * 60;
+  osc.frequency.setValueAtTime(f0, t);
+  osc.frequency.linearRampToValueAtTime(f0 * (0.7 + Math.random() * 0.8), t + 0.6 + Math.random() * 0.4);
+
+  var filt = actx.createBiquadFilter();
+  filt.type = 'bandpass';
+  filt.frequency.value = 280;
+  filt.Q.value = 6;
+
+  var g = actx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(0.045, t + 0.15);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+
+  osc.connect(filt); filt.connect(g); g.connect(actx.destination);
+  osc.start(t); osc.stop(t + 1.1);
+}
+
+// шёпот
+function whisper(){
+  if(!actx) return;
+  var t = actx.currentTime;
+  var len = Math.floor(actx.sampleRate * 1.5);
+  var buf = actx.createBuffer(1, len, actx.sampleRate);
+  var data = buf.getChannelData(0);
+  for(var i = 0; i < len; i++){
+    var env = Math.sin((i / len) * Math.PI);
+    data[i] = (Math.random() * 2 - 1) * env * 0.6;
+  }
+  var src = actx.createBufferSource();
+  src.buffer = buf;
+  var filt = actx.createBiquadFilter();
+  filt.type = 'bandpass';
+  filt.frequency.value = 700 + Math.random() * 900;
+  filt.Q.value = 3;
+  var g = actx.createGain();
+  g.gain.setValueAtTime(0.05, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
+  src.connect(filt); filt.connect(g); g.connect(actx.destination);
+  src.start(t); src.stop(t + 1.5);
+}
+
+// низкий гул-дрон (постоянный)
+function startDrone(){
+  if(!actx || audioNodes.drone) return;
+  var o1 = actx.createOscillator();
+  o1.type = 'sine'; o1.frequency.value = 42;
+  var o2 = actx.createOscillator();
+  o2.type = 'sine'; o2.frequency.value = 63.5;
+  var g = actx.createGain();
+  g.gain.value = 0.035;
+  var filt = actx.createBiquadFilter();
+  filt.type = 'lowpass'; filt.frequency.value = 220;
+  o1.connect(filt); o2.connect(filt);
+  filt.connect(g); g.connect(actx.destination);
+  o1.start(); o2.start();
+  audioNodes.drone = [o1, o2];
+  audioNodes.droneGain = g;
+}
+
+function stopDrone(){
+  if(audioNodes.drone){
+    try { audioNodes.drone.forEach(function(o){ o.stop(); }); } catch(e){}
+    audioNodes.drone = null;
+  }
+}
+
+// цикл капель
+function scheduleDripLoop(){
+  if(state === 'crash') return;
+  var d = 1.2 + Math.random() * 4.5;
+  dripTimerId = setTimeout(function(){
+    drip();
+    scheduleDripLoop();
+  }, d * 1000);
+}
+
+// цикл жутких звуков
+function scheduleCreep(){
+  if(state === 'crash') return;
+  var d = 4 + Math.random() * 8;
+  creepTimerId = setTimeout(function(){
+    var r = Math.random();
+    if(r < 0.4) creak();
+    else if(r < 0.72) whisper();
+    else {
+      // далёкий низкий удар
+      if(actx){
+        var t = actx.currentTime;
+        var o = actx.createOscillator();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(80, t);
+        o.frequency.exponentialRampToValueAtTime(30, t + 0.6);
+        var g = actx.createGain();
+        g.gain.setValueAtTime(0.12, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+        o.connect(g); g.connect(actx.destination);
+        o.start(t); o.stop(t + 1);
+      }
+    }
+    scheduleCreep();
+  }, d * 1000);
+}
+
+// финальный скример
+function screech(){
+  initAudio();
+  if(!actx) return;
+  var t = actx.currentTime;
+
+  // белый шум
+  var len = Math.floor(actx.sampleRate * 2.4);
+  var buf = actx.createBuffer(1, len, actx.sampleRate);
+  var data = buf.getChannelData(0);
+  for(var i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  var src = actx.createBufferSource();
+  src.buffer = buf;
+  var filt = actx.createBiquadFilter();
+  filt.type = 'bandpass'; filt.frequency.value = 1500; filt.Q.value = 0.7;
+  var g1 = actx.createGain();
+  g1.gain.setValueAtTime(0.55, t);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 2.4);
+  src.connect(filt); filt.connect(g1); g1.connect(actx.destination);
+  src.start(t); src.stop(t + 2.4);
+
+  // низкий рык
+  var osc = actx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(150, t);
+  osc.frequency.exponentialRampToValueAtTime(38, t + 2.2);
+  var g2 = actx.createGain();
+  g2.gain.setValueAtTime(0.35, t);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 2.2);
+  osc.connect(g2); g2.connect(actx.destination);
+  osc.start(t); osc.stop(t + 2.2);
+
+  // визг
+  var osc2 = actx.createOscillator();
+  osc2.type = 'square';
+  osc2.frequency.setValueAtTime(2100, t);
+  osc2.frequency.linearRampToValueAtTime(620, t + 0.9);
+  var g3 = actx.createGain();
+  g3.gain.setValueAtTime(0.16, t);
+  g3.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+  osc2.connect(g3); g3.connect(actx.destination);
+  osc2.start(t); osc2.stop(t + 1.0);
+}
+
+/* =========================================================
+   СОСТОЯНИЕ
+   ========================================================= */
+var player = { x: 0, z: 8, yaw: 0, pitch: 0, r: 0.42 };
+var keys   = {};
+var state  = 'menu';
+var level  = 1;
+var hasKey = false;
+var keyTaken = false;
+var keyMesh  = null;
+var door     = null;
+var colliders = [];
+var dustSystems = [];
+var rafId = 0;
+var lastTime = performance.now();
+var lockedMsgTime = 0;
+var torchBase = 1.1;
+var flashBase = 1.6;
+
+/* =========================================================
+   ХЕЛПЕРЫ СЦЕНЫ
+   ========================================================= */
+function addMesh(geo, mat, x, y, z, castSh, recSh){
+  var m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  if(SHADOWS){
+    m.castShadow = castSh !== false;
+    m.receiveShadow = recSh !== false;
+  }
+  world.add(m);
+  return m;
+}
+
+function addCollider(x, z, w, d){
+  var c = { x1: x - w/2, z1: z - d/2, x2: x + w/2, z2: z + d/2 };
+  colliders.push(c);
+  return c;
+}
+
+function addWall(x, z, w, d, h, mat){
+  var m = addMesh(new THREE.BoxGeometry(w, h, d), mat, x, h/2, z);
+  // правильное повторение текстуры по сторонам
+  if(mat.map){
+    var t = mat.map;
+    t.repeat.set(Math.max(1, w / 3), Math.max(1, h / 3));
+  }
+  addCollider(x, z, w, d);
+  return m;
+}
+
+function makeRoom(sx, sz, h, gapX, gapW){
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(sx, sz), matFloor());
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = SHADOWS;
+  world.add(floor);
+
+  var ceil = new THREE.Mesh(new THREE.PlaneGeometry(sx, sz), matCeil());
+  ceil.rotation.x = Math.PI / 2;
+  ceil.position.y = h;
+  world.add(ceil);
+
+  var t = 0.6, hx = sx / 2, hz = sz / 2;
+
+  addWall(0,  hz, sx + t, t, h, matWall());
+  addWall( hx, 0, t, sz + t, h, matWall());
+  addWall(-hx, 0, t, sz + t, h, matWall());
+
+  var g1 = gapX - gapW / 2;
+  var g2 = gapX + gapW / 2;
+  var wL = g1 - (-hx);
+  var wR = hx - g2;
+  if(wL > 0.05) addWall(-hx + wL / 2, -hz, wL, t, h, matWall());
+  if(wR > 0.05) addWall(g2 + wR / 2, -hz, wR, t, h, matWall());
+
+  addMesh(new THREE.BoxGeometry(gapW, 0.6, t), matWall(), gapX, h - 0.3, -hz);
+}
+
+function addDust(sx, sz, h, count){
+  count = count || 120;
+  var positions = new Float32Array(count * 3);
+  var speeds = new Float32Array(count);
+  for(var i = 0; i < count; i++){
+    positions[i*3]   = (Math.random() - 0.5) * sx;
+    positions[i*3+1] = Math.random() * h;
+    positions[i*3+2] = (Math.random() - 0.5) * sz;
+    speeds[i] = 0.05 + Math.random() * 0.15;
+  }
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+  // мягкий круглый спрайт для пылинки
+  var sc = document.createElement('canvas');
+  sc.width = sc.height = 32;
+  var sctx = sc.getContext('2d');
+  var grad = sctx.createRadialGradient(16,16,0,16,16,16);
+  grad.addColorStop(0,'rgba(255,255,255,1)');
+  grad.addColorStop(1,'rgba(255,255,255,0)');
+  sctx.fillStyle = grad;
+  sctx.fillRect(0,0,32,32);
+  var sprite = new THREE.CanvasTexture(sc);
+
+  var mat = new THREE.PointsMaterial({
+    size: 0.05,
+    map: sprite,
+    transparent: true,
+    opacity: 0.35,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+  var pts = new THREE.Points(geo, mat);
+  world.add(pts);
+  dustSystems.push({ pts: pts, speeds: speeds, h: h, count: count });
+  return pts;
+}
+
+function addKey(x, y, z){
+  var g = new THREE.Group();
+  var mat = new THREE.MeshStandardMaterial({
+    color: 0xffd23f, emissive: 0x7a5500, emissiveIntensity: 0.9,
+    roughness: 0.35, metalness: 0.9
+  });
+
+  var shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.55, 10), mat);
+  shaft.rotation.z = Math.PI / 2;
+  g.add(shaft);
+
+  var ring = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.055, 10, 22), mat);
+  ring.position.x = -0.35;
+  g.add(ring);
+
+  var tooth = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.22, 0.07), mat);
+  tooth.position.set(0.2, -0.14, 0);
+  g.add(tooth);
+
+  var tooth2 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.16, 0.07), mat);
+  tooth2.position.set(0.05, -0.11, 0);
+  g.add(tooth2);
+
+  var light = new THREE.PointLight(0xffcc44, 1.2, 6.5, 1.8);
+  g.add(light);
+
+  g.position.set(x, y, z);
+  g.userData.baseY = y;
+  g.userData.light = light;
+
+  world.add(g);
+  keyMesh = g;
+}
+
+function addDoor(x, z, color, needsKey, bloodied){
+  var w = 2.8, h = 3.0;
+
+  var pivot = new THREE.Group();
+  pivot.position.set(x - w / 2, 0, z);
+  world.add(pivot);
+
+  var geo = new THREE.BoxGeometry(w, h, 0.22);
+  geo.translate(w / 2, h / 2, 0);
+
+  var mesh = new THREE.Mesh(geo, bloodied ? matBlood() : matDoor(color));
+  if(SHADOWS){ mesh.castShadow = true; mesh.receiveShadow = true; }
+  pivot.add(mesh);
+
+  // ручка
+  var knob = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 12), matMetal());
+  knob.position.set(w - 0.28, h / 2, 0.17);
+  mesh.add(knob);
+
+  // табличка-предупреждение на "кровавой" двери
+  if(bloodied){
+    var plate = new THREE.Mesh(
+      new THREE.BoxGeometry(0.9, 0.35, 0.05),
+      new THREE.MeshStandardMaterial({ color: 0x1a0000, emissive: 0x550000, emissiveIntensity: 0.6 })
+    );
+    plate.position.set(w - 0.55, h - 0.55, 0.14);
+    mesh.add(plate);
+  }
+
+  var col = addCollider(x, z, w, 0.5);
+
+  door = {
+    pivot: pivot, x: x, z: z,
+    open: false, finished: false, t: 0,
+    needsKey: needsKey !== false,
+    collider: col
+  };
+}
+
+function clearWorld(){
+  for(var i = world.children.length - 1; i >= 0; i--){
+    var o = world.children[i];
+    world.remove(o);
+    o.traverse(function(c){
+      if(c.geometry) c.geometry.dispose();
+      if(c.material){
+        var mats = Array.isArray(c.material) ? c.material : [c.material];
+        mats.forEach(function(m){
+          if(m.map && m.map.dispose) m.map.dispose();
+          m.dispose();
+        });
+      }
+    });
+  }
+  colliders = [];
+  dustSystems = [];
+  keyMesh = null;
+  door = null;
+  keyTaken = false;
+}
+
+/* =========================================================
+   УРОВНИ
+   ========================================================= */
+function buildLevel1(){
+  clearWorld();
+  scene.background.set(0x0a0a14);
+  scene.fog.color.set(0x0a0a14);
+  scene.fog.near = 8;
+  scene.fog.far  = 48;
+
+  ambient.intensity = 0.5;
+  hemi.intensity    = 0.35;
+  torch.color.set(0xffe0b0);
+  torchBase = 1.3;
+  flashBase = 1.5;
+  flashLight.color.set(0xfff0cc);
+
+  makeRoom(26, 26, 3.4, 0, 3);
+  addDust(24, 24, 3.2, isSmallScreen ? 80 : 160);
+
+  // стеллаж
+  addMesh(new THREE.BoxGeometry(4.2, 1.5, 1.1), matWood(), -7, 0.75, -7);
+  addCollider(-7, -7, 4.2, 1.1);
+  addMesh(new THREE.BoxGeometry(4.2, 0.12, 1.2), matWood(), -7, 1.6, -7);
+  addMesh(new THREE.BoxGeometry(0.8, 0.5, 1.0), matWood(), -8.6, 1.9, -7);
+  addMesh(new THREE.BoxGeometry(0.9, 0.7, 1.0), matWood(), -5.5, 2.0, -7);
+
+  // факелы на стенах
+  var torches = [[-12.5, 0, -4], [12.5, 0, -4], [-12.5, 0, 6], [12.5, 0, 6]];
+  torches.forEach(function(p){
+    var l = new THREE.PointLight(0xff9040, 0.9, 9, 2);
+    l.position.set(p[0], 2.6, p[2]);
+    world.add(l);
+    var bulb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0xffcc66, emissive: 0xff7722, emissiveIntensity: 2 })
+    );
+    bulb.position.copy(l.position);
+    world.add(bulb);
+  });
+
+  addKey(-7, 2.05, -7);
+  addDoor(0, -13, 0x8a5a2b, true, false);
+
+  player.x = 0; player.z = 9; player.yaw = 0; player.pitch = 0;
+}
+
+function buildLevel2(){
+  clearWorld();
+  scene.background.set(0x04040a);
+  scene.fog.color.set(0x04040a);
+  scene.fog.near = 2.5;
+  scene.fog.far  = 22;
+
+  ambient.intensity = 0.14;
+  hemi.intensity    = 0.1;
+  torch.color.set(0x8fa8ff);
+  torchBase = 0.8;
+  flashBase = 1.9;
+  flashLight.color.set(0xdde8ff);
+
+  makeRoom(34, 34, 3.6, 0, 3);
+  addDust(32, 32, 3.4, isSmallScreen ? 100 : 220);
+
+  // колонны
+  var pillars = [[-9,-9],[-9,0],[-9,9],[9,-9],[9,0],[9,9],[0,-6],[0,6]];
+  pillars.forEach(function(p){
+    addMesh(new THREE.BoxGeometry(2, 3.6, 2), matPillar(), p[0], 1.8, p[1]);
+    addCollider(p[0], p[1], 2, 2);
+  });
+
+  // стены-лабиринт
+  addWall(-6, -3, 0.6, 11, 3.6, matWall());
+  addWall( 6,  3, 0.6, 11, 3.6, matWall());
+  addWall(-2,  9, 9, 0.6, 3.6, matWall());
+  addWall( 3, -11, 8, 0.6, 3.6, matWall());
+
+  // красные аварийные лампы (очень тусклые)
+  [[-12, -12], [12, 12], [-12, 12], [12, -12]].forEach(function(p){
+    var l = new THREE.PointLight(0xff2020, 0.5, 7, 2);
+    l.position.set(p[0], 3, p[1]);
+    world.add(l);
+    var s = new THREE.Mesh(
+      new THREE.SphereGeometry(0.09, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0xff2222, emissive: 0xff0000, emissiveIntensity: 2 })
+    );
+    s.position.copy(l.position);
+    world.add(s);
+  });
+
+  addKey(-11, 1.6, -11);
+  addDoor(0, -17, 0x8a5a2b, true, false);
+
+  player.x = 0; player.z = 13; player.yaw = 0; player.pitch = 0;
+}
+
+function buildLevel3(){
+  clearWorld();
+  scene.background.set(0x030305);
+  scene.fog.color.set(0x030305);
+  scene.fog.near = 1.2;
+  scene.fog.far  = 15;
+
+  ambient.intensity = 0.08;
+  hemi.intensity    = 0.06;
+  torch.color.set(0xff6060);
+  torchBase = 0.6;
+  flashBase = 1.5;
+  flashLight.color.set(0xffd0c8);
+
+  makeRoom(6, 26, 3.0, 0, 3);
+  addDust(5, 24, 2.8, isSmallScreen ? 60 : 140);
+
+  for(var z = 8; z > -10; z -= 6){
+    var l = new THREE.PointLight(0xff4040, 0.5, 8, 2);
+    l.position.set(0, 2.6, z);
+    world.add(l);
+    var b = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0xff0000, emissiveIntensity: 2.2 })
+    );
+    b.position.copy(l.position);
+    world.add(b);
+  }
+
+  // кровавые следы на полу
+  for(var i = 0; i < 8; i++){
+    var splash = new THREE.Mesh(
+      new THREE.CircleGeometry(0.35 + Math.random() * 0.5, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0x550000, roughness: 0.6, metalness: 0.1,
+        emissive: 0x220000, transparent: true, opacity: 0.85
+      })
+    );
+    splash.rotation.x = -Math.PI / 2;
+    splash.position.set((Math.random() - 0.5) * 3, 0.011, 8 - i * 2.6 + (Math.random() - 0.5));
+    world.add(splash);
+  }
+
+  addDoor(0, -13, 0x5e1212, false, true);
+  door.auto = true;
+
+  player.x = 0; player.z = 10; player.yaw = 0; player.pitch = 0;
+}
+
+/* =========================================================
+   ПЕРЕХОДЫ
+   ========================================================= */
+function startLevel(n){
+  level = n;
+  hasKey = false;
+  updateHUD();
+
+  if(n === 1) buildLevel1();
+  else if(n === 2) buildLevel2();
+  else buildLevel3();
+
+  if(n === 1) showMsg('Найди ключ на полке...', 2.8);
+  if(n === 2) showMsg('Темно... найди ключ', 2.8);
+  if(n === 3) showMsg('...', 1.5);
+}
+
+function transitionTo(fn){
+  if(state === 'transition') return;
+  state = 'transition';
+  var f = document.getElementById('fade');
+  f.style.opacity = '1';
+  setTimeout(function(){
+    fn();
+    setTimeout(function(){
+      f.style.opacity = '0';
+      state = 'play';
+    }, 150);
+  }, 850);
+}
+
+function onDoorOpenComplete(){
+  if(level === 1){
+    transitionTo(function(){ startLevel(2); });
+  } else if(level === 2){
+    transitionTo(function(){ startLevel(3); });
+  } else {
+    state = 'transition';
+    setTimeout(startEnding, 700);
+  }
+}
+
+/* =========================================================
+   HUD
+   ========================================================= */
+function updateHUD(){
+  document.getElementById('hLevel').textContent = level;
+  var k = document.getElementById('hKey');
+  k.textContent = hasKey ? 'ЕСТЬ' : 'нет';
+  k.style.color = hasKey ? '#7CFC00' : '#ff6b6b';
+}
+
+var msgTimer = 0;
+function showMsg(text, dur){
+  var el = document.getElementById('msg');
+  el.textContent = text;
+  el.style.opacity = '1';
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(function(){ el.style.opacity = '0'; }, (dur || 1.9) * 1000);
+}
+
+/* =========================================================
+   ПК УПРАВЛЕНИЕ
+   ========================================================= */
+document.addEventListener('keydown', function(e){ keys[e.code] = true; });
+document.addEventListener('keyup',   function(e){ keys[e.code] = false; });
+
+document.addEventListener('mousemove', function(e){
+  if(ctrlMode !== 'pc') return;
+  if(document.pointerLockElement !== canvas) return;
+  if(state !== 'play') return;
+  player.yaw   -= e.movementX * 0.0022;
+  player.pitch -= e.movementY * 0.0022;
+  clampPitch();
+});
+
+canvas.addEventListener('click', function(){
+  if(ctrlMode !== 'pc') return;
+  if(state === 'play' && document.pointerLockElement !== canvas){
+    if(canvas.requestPointerLock) canvas.requestPointerLock();
+  }
+});
+
+function clampPitch(){
+  var lim = Math.PI / 2 - 0.05;
+  if(player.pitch >  lim) player.pitch =  lim;
+  if(player.pitch < -lim) player.pitch = -lim;
+}
+
+/* =========================================================
+   МОБИЛЬНОЕ УПРАВЛЕНИЕ
+   ========================================================= */
+var joyEl    = document.getElementById('joy');
+var joyKnob  = document.getElementById('joyKnob');
+var lookHint = document.getElementById('lookHint');
+var joyTouchId = null;
+var lookTouchId = null;
+var joyCenter = { x: 0, y: 0 };
+var joyVec = { x: 0, y: 0 };
+var lookLast = { x: 0, y: 0 };
+
+function setCtrlMode(mode){
+  ctrlMode = mode;
+  document.getElementById('modeBtn').textContent = (mode === 'pc') ? '🖥️ PC' : '📱 МОБИЛА';
+  var ch = document.getElementById('ctrlHint');
+  if(ch){
+    ch.innerHTML = (mode === 'pc')
+      ? 'Управление: <span class="k">W A S D</span> — ходьба, <span class="k">мышь</span> — обзор'
+      : 'Управление: <span class="k">джойстик</span> слева — ходьба, <span class="k">свайп</span> справа — обзор';
+  }
+  if(mode === 'mobile'){
+    joyEl.style.display = 'block';
+    lookHint.style.display = 'block';
+    if(document.pointerLockElement) document.exitPointerLock();
+  } else {
+    joyEl.style.display = 'none';
+    lookHint.style.display = 'none';
+    joyVec.x = joyVec.y = 0;
+    joyKnob.style.transform = 'translate(0,0)';
+  }
+}
+
+document.getElementById('modeBtn').addEventListener('click', function(e){
+  e.stopPropagation();
+  initAudio();
+  setCtrlMode(ctrlMode === 'pc' ? 'mobile' : 'pc');
+});
+
+function onTouchStart(e){
+  if(ctrlMode !== 'mobile' || state !== 'play') return;
+  var W = window.innerWidth, H = window.innerHeight;
+  for(var i = 0; i < e.changedTouches.length; i++){
+    var t = e.changedTouches[i];
+    if(joyTouchId === null && t.clientX < W * 0.5 && t.clientY > H * 0.45){
+      joyTouchId = t.identifier;
+      joyCenter.x = t.clientX;
+      joyCenter.y = t.clientY;
+      joyEl.classList.add('active');
+      joyEl.style.left = (t.clientX - 65) + 'px';
+      joyEl.style.top  = (t.clientY - 65) + 'px';
+      joyEl.style.bottom = 'auto';
+    } else if(lookTouchId === null){
+      lookTouchId = t.identifier;
+      lookLast.x = t.clientX;
+      lookLast.y = t.clientY;
+    }
+  }
+  e.preventDefault();
+}
+
+function onTouchMove(e){
+  if(ctrlMode !== 'mobile' || state !== 'play') return;
+  for(var i = 0; i < e.changedTouches.length; i++){
+    var t = e.changedTouches[i];
+    if(t.identifier === joyTouchId){
+      var dx = t.clientX - joyCenter.x;
+      var dy = t.clientY - joyCenter.y;
+      var r = 55;
+      var len = Math.hypot(dx, dy);
+      if(len > r){ dx = dx / len * r; dy = dy / len * r; }
+      joyVec.x =  dx / r;
+      joyVec.y =  dy / r;
+      joyKnob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    } else if(t.identifier === lookTouchId){
+      var ddx = t.clientX - lookLast.x;
+      var ddy = t.clientY - lookLast.y;
+      lookLast.x = t.clientX;
+      lookLast.y = t.clientY;
+      player.yaw   -= ddx * 0.006;
+      player.pitch -= ddy * 0.006;
+      clampPitch();
+    }
+  }
+  e.preventDefault();
+}
+
+function onTouchEnd(e){
+  for(var i = 0; i < e.changedTouches.length; i++){
+    var t = e.changedTouches[i];
+    if(t.identifier === joyTouchId){
+      joyTouchId = null;
+      joyVec.x = joyVec.y = 0;
+      joyKnob.style.transform = 'translate(0,0)';
+      joyEl.classList.remove('active');
+    } else if(t.identifier === lookTouchId){
+      lookTouchId = null;
+    }
+  }
+}
+
+canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+canvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
+canvas.addEventListener('touchend',   onTouchEnd,   { passive: false });
+canvas.addEventListener('touchcancel',onTouchEnd,   { passive: false });
+
+/* =========================================================
+   ФИЗИКА
+   ========================================================= */
+function hits(x, z, r){
+  for(var i = 0; i < colliders.length; i++){
+    var c = colliders[i];
+    var cx = Math.max(c.x1, Math.min(x, c.x2));
+    var cz = Math.max(c.z1, Math.min(z, c.z2));
+    var dx = x - cx, dz = z - cz;
+    if(dx * dx + dz * dz < r * r) return true;
+  }
+  return false;
+}
+
+function move(dx, dz){
+  var r = player.r;
+  var nx = player.x + dx;
+  if(!hits(nx, player.z, r)) player.x = nx;
+  var nz = player.z + dz;
+  if(!hits(player.x, nz, r)) player.z = nz;
+}
+
+/* =========================================================
+   ДЕЙСТВИЯ
+   ========================================================= */
+function takeKey(){
+  if(keyTaken) return;
+  keyTaken = true;
+  hasKey = true;
+  if(keyMesh) keyMesh.visible = false;
+  keyMesh = null;
+  updateHUD();
+  showMsg('🔑 Ключ получен!', 2.0);
+  beep(1100, 0.07, 0.08);
+  setTimeout(function(){ beep(1600, 0.12, 0.08); }, 80);
+}
+
+function openDoor(){
+  if(!door || door.open) return;
+  if(door.needsKey && !hasKey){
+    var now = performance.now();
+    if(now - lockedMsgTime > 1800){
+      lockedMsgTime = now;
+      showMsg('🔒 Заперто. Нужен ключ.', 1.5);
+      beep(160, 0.12, 0.06);
+    }
+    return;
+  }
+  door.open = true;
+  var idx = colliders.indexOf(door.collider);
+  if(idx >= 0) colliders.splice(idx, 1);
+  beep(90, 0.5, 0.09);
+  showMsg('Дверь открывается...', 1.6);
+}
+
+/* =========================================================
+   ОБНОВЛЕНИЕ
+   ========================================================= */
+var timeAcc = 0;
+
+function update(dt){
+  timeAcc += dt;
+
+  // камера
+  camera.position.set(player.x, 1.65, player.z);
+  camera.rotation.y = player.yaw;
+  camera.rotation.x = player.pitch;
+
+  // мерцание фонарика
+  var flick = 1
+    + Math.sin(timeAcc * 17.3) * 0.045
+    + Math.sin(timeAcc * 31.7) * 0.028
+    + Math.sin(timeAcc * 5.1)  * 0.03;
+  flashLight.intensity = flashBase * flick;
+  torch.intensity = torchBase * (0.9 + Math.sin(timeAcc * 2.3) * 0.06);
+
+  // ключ
+  if(keyMesh){
+    keyMesh.rotation.y += dt * 2.2;
+    keyMesh.position.y = keyMesh.userData.baseY +
+      Math.sin(timeAcc * 3) * 0.09;
+    if(keyMesh.userData.light){
+      keyMesh.userData.light.intensity = 1.0 + Math.sin(timeAcc * 5) * 0.25;
+    }
+  }
+
+  // пыль
+  for(var s = 0; s < dustSystems.length; s++){
+    var d = dustSystems[s];
+    var pos = d.pts.geometry.attributes.position;
+    var arr = pos.array;
+    for(var i = 0; i < d.count; i++){
+      arr[i*3+1] += d.speeds[i] * dt;
+      if(arr[i*3+1] > d.h) arr[i*3+1] = 0;
+    }
+    pos.needsUpdate = true;
+  }
+
+  // дверь
+  if(door && door.open && door.t < 1){
+    door.t = Math.min(1, door.t + dt * 0.85);
+    var e = 1 - Math.pow(1 - door.t, 3);
+    door.pivot.rotation.y = Math.PI * 0.55 * e;
+    if(door.t >= 1 && !door.finished){
+      door.finished = true;
+      onDoorOpenComplete();
+    }
+  }
+
+  if(state !== 'play') return;
+
+  // движение от клавиатуры
+  var fx = 0, fz = 0;
+  if(ctrlMode === 'pc'){
+    if(keys['KeyW'] || keys['ArrowUp'])    fz -= 1;
+    if(keys['KeyS'] || keys['ArrowDown'])  fz += 1;
+    if(keys['KeyA'] || keys['ArrowLeft'])  fx -= 1;
+    if(keys['KeyD'] || keys['ArrowRight']) fx += 1;
+  } else {
+    fx = joyVec.x;
+    fz = joyVec.y;
+  }
+
+  var mag = Math.hypot(fx, fz);
+  if(mag > 0.05){
+    if(mag > 1){ fx /= mag; fz /= mag; }
+    var s = Math.sin(player.yaw), c = Math.cos(player.yaw);
+    var sp = 4.2 * dt * Math.min(1, mag);
+    move((s * fz + c * fx) * sp, (c * fz - s * fx) * sp);
+  }
+
+  // подбор ключа
+  if(keyMesh && !keyTaken){
+    var dk = Math.hypot(player.x - keyMesh.position.x, player.z - keyMesh.position.z);
+    if(dk < 1.5) takeKey();
+  }
+
+  // дверь
+  if(door && !door.open){
+    var dd = Math.hypot(player.x - door.x, player.z - door.z);
+    if(door.auto){ if(dd < 4.5) openDoor(); }
+    else if(dd < 2.4) openDoor();
+  }
+}
+
+/* =========================================================
+   ЦИКЛ
+   ========================================================= */
+function loop(now){
+  rafId = requestAnimationFrame(loop);
+  var dt = (now - lastTime) / 1000;
+  lastTime = now;
+  if(dt > 0.06) dt = 0.06;
+  update(dt);
+  renderer.render(scene, camera);
+}
+rafId = requestAnimationFrame(loop);
+
+/* =========================================================
+   СТАРТ
+   ========================================================= */
+document.getElementById('hint').addEventListener('click', function(){
+  document.getElementById('hint').style.display = 'none';
+  initAudio();
+  startDrone();
+  scheduleDripLoop();
+  scheduleCreep();
+  setCtrlMode(ctrlMode);
+  if(ctrlMode === 'pc' && canvas.requestPointerLock) canvas.requestPointerLock();
+  startLevel(1);
+  state = 'play';
+  lastTime = performance.now();
+});
+
+// первичная надпись на кнопке
+setCtrlMode(ctrlMode);
+
+/* =========================================================
+   СКРИМЕР / ТАЙМЕР / КРАШ
+   ========================================================= */
+function startEnding(){
+  if(state === 'ending' || state === 'crash') return;
+  state = 'ending';
+
+  if(document.pointerLockElement) document.exitPointerLock();
+
+  // остановим "приятные" звуки
+  clearTimeout(dripTimerId);
+  clearTimeout(creepTimerId);
+
+  screech();
+
+  var sc = document.getElementById('scare');
+  sc.classList.add('on');
+
+  var barTimer = setInterval(function(){
+    for(var i = 0; i < 3; i++){
+      var b = document.createElement('div');
+      b.className = 'glitchbar';
+      b.style.top = (Math.random() * 100) + '%';
+      b.style.height = (2 + Math.random() * 14) + 'px';
+      b.style.background = Math.random() < 0.5 ? '#fff' :
+                          (Math.random() < 0.5 ? '#ff0000' : '#00ffff');
+      b.style.opacity = 0.15 + Math.random() * 0.4;
+      document.body.appendChild(b);
+      (function(el){
+        setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); },
+          60 + Math.random() * 140);
+      })(b);
+    }
+  }, 70);
+
+  var t = 15;
+  var el = document.getElementById('count');
+  el.textContent = t;
+
+  var iv = setInterval(function(){
+    t--;
+    el.textContent = t > 0 ? t : 0;
+    if(t > 0){
+      beep(880, 0.05, 0.12);
+      // усиливающийся гул
+      if(audioNodes.droneGain && actx){
+        audioNodes.droneGain.gain.setTargetAtTime(
+          0.035 + (15 - t) * 0.008, actx.currentTime, 0.2);
+      }
+    } else {
+      clearInterval(iv);
+      clearInterval(barTimer);
+      crash();
+    }
+  }, 1000);
+}
+
+function crash(){
+  if(state === 'crash') return;
+  state = 'crash';
+
+  if(document.pointerLockElement) document.exitPointerLock();
+  cancelAnimationFrame(rafId);
+
+  // убиваем звук
+  try {
+    if(audioNodes.drone) audioNodes.drone.forEach(function(o){ o.stop(); });
+    if(actx) actx.close();
+  } catch(e){}
+
+  try { renderer.forceContextLoss(); } catch(e){}
+  try { renderer.dispose(); } catch(e){}
+
+  var scare = document.getElementById('scare');
+  if(scare) scare.classList.remove('on');
+
+  document.body.innerHTML = '';
+
+  var crashDiv = document.createElement('div');
+  crashDiv.id = 'crash';
+  crashDiv.textContent =
+    'FATAL ERROR 0x000000FF\n' +
+    'MEMORY CORRUPTED\n' +
+    'STACK: 0xDEADBEEF 0xC0000005 0x00000000\n' +
+    'DISK C:\\  ...  ACCESS DENIED\n' +
+    'DATA DESTRUCTION IN PROGRESS...\n' +
+    '...\n' +
+    '...\n' +
+    'CONNECTION LOST\n';
+  document.body.appendChild(crashDiv);
+
+  for(var i = 0; i < 45; i++){
+    var b = document.createElement('div');
+    b.className = 'glitchbar';
+    b.style.top = (Math.random() * 100) + '%';
+    b.style.height = (1 + Math.random() * 9) + 'px';
+    b.style.background = Math.random() < 0.5 ? '#ffffff' :
+                        (Math.random() < 0.5 ? '#ff0000' : '#00ffff');
+    b.style.opacity = 0.04 + Math.random() * 0.3;
+    document.body.appendChild(b);
+  }
+
+  setTimeout(function(){
+    var h = document.createElement('div');
+    h.id = 'hang';
+    h.innerHTML = '<span class="spin">◌</span>Страница не отвечает';
+    document.body.appendChild(h);
+  }, 1400);
+}
+
+})();
+</script>
+</body>
+</html>
