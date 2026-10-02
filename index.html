@@ -59,6 +59,30 @@
     animation:pulse 1.2s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
+  /* === ЗАСТАВКА === */
+  #splash{
+    position:fixed;inset:0;z-index:60;background:#000;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    transition:opacity 1s ease;
+    pointer-events:none;
+  }
+  #splash.hide{opacity:0}
+  #splash img{
+    width:min(38vh,38vw);height:auto;
+    filter:drop-shadow(0 0 30px rgba(100,160,255,.55));
+    animation:splashIn 1.2s ease;
+  }
+  #splash .splash-text{
+    margin-top:24px;font-size:clamp(20px,4vw,38px);font-weight:700;
+    letter-spacing:5px;color:#e8f0ff;
+    text-shadow:0 0 24px #4af,0 0 8px #fff;
+    animation:splashIn 1.6s ease;
+  }
+  @keyframes splashIn{
+    0%{opacity:0;transform:scale(.85)}
+    100%{opacity:1;transform:scale(1)}
+  }
+
   /* === скример === */
   #scare{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
     flex-direction:column;background:#000;overflow:hidden;animation:bgflash .09s infinite}
@@ -99,6 +123,11 @@
 </style>
 </head>
 <body>
+
+<div id="splash">
+  <img src="https://static-algoritmika-org.ngcdn.ru/uploads/community/avatar/svg/70492408_1789827889.svg?t=1789827889" alt="logo">
+  <div class="splash-text">By — Всеволод</div>
+</div>
 
 <canvas id="c"></canvas>
 <div id="cross"></div>
@@ -199,7 +228,7 @@ var torch = new THREE.PointLight(0xffe0b0, 1.1, 32, 1.8);
 torch.position.set(0, 4, 0);
 scene.add(torch);
 
-// фонарик-прожектор (дает тени и ощущение направленного света)
+// фонарик-прожектор
 var flashLight = new THREE.SpotLight(0xfff0cc, 1.6, 22, Math.PI / 5, 0.55, 1.5);
 flashLight.position.set(0, -0.05, 0.1);
 flashLight.target.position.set(0, -0.15, -1);
@@ -243,7 +272,6 @@ function makeTex(kind, size){
       var n2 = noise(x * 0.05, y * 0.05);
 
       if(kind === 'wall'){
-        // кирпич
         var bh = size / 8, bw = size / 4;
         var row = Math.floor(y / bh);
         var off = (row % 2) * (bw / 2);
@@ -324,11 +352,6 @@ function matWood(){
 function matDoor(color){
   return new THREE.MeshStandardMaterial({ color: color, roughness: 0.7, metalness: 0.35 });
 }
-function matRust(){
-  var t = TEX.rust.clone(); t.needsUpdate = true;
-  t.repeat.set(2, 2);
-  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.95, metalness: 0.25 });
-}
 function matBlood(){
   var t = TEX.blood.clone(); t.needsUpdate = true;
   t.repeat.set(2, 2);
@@ -372,7 +395,6 @@ function beep(freq, dur, vol, type){
   o.stop(actx.currentTime + (dur || 0.08) + 0.02);
 }
 
-// капля воды
 function drip(){
   if(!actx) return;
   var t = actx.currentTime;
@@ -388,7 +410,6 @@ function drip(){
   osc.connect(g); g.connect(actx.destination);
   osc.start(t); osc.stop(t + 0.28);
 
-  // эхо-капля
   if(Math.random() < 0.4){
     setTimeout(function(){
       if(!actx) return;
@@ -406,7 +427,6 @@ function drip(){
   }
 }
 
-// скрип дерева / металла
 function creak(){
   if(!actx) return;
   var t = actx.currentTime;
@@ -430,7 +450,6 @@ function creak(){
   osc.start(t); osc.stop(t + 1.1);
 }
 
-// шёпот
 function whisper(){
   if(!actx) return;
   var t = actx.currentTime;
@@ -454,7 +473,6 @@ function whisper(){
   src.start(t); src.stop(t + 1.5);
 }
 
-// низкий гул-дрон (постоянный)
 function startDrone(){
   if(!actx || audioNodes.drone) return;
   var o1 = actx.createOscillator();
@@ -472,14 +490,6 @@ function startDrone(){
   audioNodes.droneGain = g;
 }
 
-function stopDrone(){
-  if(audioNodes.drone){
-    try { audioNodes.drone.forEach(function(o){ o.stop(); }); } catch(e){}
-    audioNodes.drone = null;
-  }
-}
-
-// цикл капель
 function scheduleDripLoop(){
   if(state === 'crash') return;
   var d = 1.2 + Math.random() * 4.5;
@@ -489,7 +499,6 @@ function scheduleDripLoop(){
   }, d * 1000);
 }
 
-// цикл жутких звуков
 function scheduleCreep(){
   if(state === 'crash') return;
   var d = 4 + Math.random() * 8;
@@ -498,7 +507,6 @@ function scheduleCreep(){
     if(r < 0.4) creak();
     else if(r < 0.72) whisper();
     else {
-      // далёкий низкий удар
       if(actx){
         var t = actx.currentTime;
         var o = actx.createOscillator();
@@ -516,13 +524,11 @@ function scheduleCreep(){
   }, d * 1000);
 }
 
-// финальный скример
 function screech(){
   initAudio();
   if(!actx) return;
   var t = actx.currentTime;
 
-  // белый шум
   var len = Math.floor(actx.sampleRate * 2.4);
   var buf = actx.createBuffer(1, len, actx.sampleRate);
   var data = buf.getChannelData(0);
@@ -537,7 +543,6 @@ function screech(){
   src.connect(filt); filt.connect(g1); g1.connect(actx.destination);
   src.start(t); src.stop(t + 2.4);
 
-  // низкий рык
   var osc = actx.createOscillator();
   osc.type = 'sawtooth';
   osc.frequency.setValueAtTime(150, t);
@@ -548,7 +553,6 @@ function screech(){
   osc.connect(g2); g2.connect(actx.destination);
   osc.start(t); osc.stop(t + 2.2);
 
-  // визг
   var osc2 = actx.createOscillator();
   osc2.type = 'square';
   osc2.frequency.setValueAtTime(2100, t);
@@ -601,7 +605,6 @@ function addCollider(x, z, w, d){
 
 function addWall(x, z, w, d, h, mat){
   var m = addMesh(new THREE.BoxGeometry(w, h, d), mat, x, h/2, z);
-  // правильное повторение текстуры по сторонам
   if(mat.map){
     var t = mat.map;
     t.repeat.set(Math.max(1, w / 3), Math.max(1, h / 3));
@@ -650,7 +653,6 @@ function addDust(sx, sz, h, count){
   var geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-  // мягкий круглый спрайт для пылинки
   var sc = document.createElement('canvas');
   sc.width = sc.height = 32;
   var sctx = sc.getContext('2d');
@@ -723,12 +725,10 @@ function addDoor(x, z, color, needsKey, bloodied){
   if(SHADOWS){ mesh.castShadow = true; mesh.receiveShadow = true; }
   pivot.add(mesh);
 
-  // ручка
   var knob = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 12), matMetal());
   knob.position.set(w - 0.28, h / 2, 0.17);
   mesh.add(knob);
 
-  // табличка-предупреждение на "кровавой" двери
   if(bloodied){
     var plate = new THREE.Mesh(
       new THREE.BoxGeometry(0.9, 0.35, 0.05),
@@ -790,14 +790,12 @@ function buildLevel1(){
   makeRoom(26, 26, 3.4, 0, 3);
   addDust(24, 24, 3.2, isSmallScreen ? 80 : 160);
 
-  // стеллаж
   addMesh(new THREE.BoxGeometry(4.2, 1.5, 1.1), matWood(), -7, 0.75, -7);
   addCollider(-7, -7, 4.2, 1.1);
   addMesh(new THREE.BoxGeometry(4.2, 0.12, 1.2), matWood(), -7, 1.6, -7);
   addMesh(new THREE.BoxGeometry(0.8, 0.5, 1.0), matWood(), -8.6, 1.9, -7);
   addMesh(new THREE.BoxGeometry(0.9, 0.7, 1.0), matWood(), -5.5, 2.0, -7);
 
-  // факелы на стенах
   var torches = [[-12.5, 0, -4], [12.5, 0, -4], [-12.5, 0, 6], [12.5, 0, 6]];
   torches.forEach(function(p){
     var l = new THREE.PointLight(0xff9040, 0.9, 9, 2);
@@ -834,20 +832,17 @@ function buildLevel2(){
   makeRoom(34, 34, 3.6, 0, 3);
   addDust(32, 32, 3.4, isSmallScreen ? 100 : 220);
 
-  // колонны
   var pillars = [[-9,-9],[-9,0],[-9,9],[9,-9],[9,0],[9,9],[0,-6],[0,6]];
   pillars.forEach(function(p){
     addMesh(new THREE.BoxGeometry(2, 3.6, 2), matPillar(), p[0], 1.8, p[1]);
     addCollider(p[0], p[1], 2, 2);
   });
 
-  // стены-лабиринт
   addWall(-6, -3, 0.6, 11, 3.6, matWall());
   addWall( 6,  3, 0.6, 11, 3.6, matWall());
   addWall(-2,  9, 9, 0.6, 3.6, matWall());
   addWall( 3, -11, 8, 0.6, 3.6, matWall());
 
-  // красные аварийные лампы (очень тусклые)
   [[-12, -12], [12, 12], [-12, 12], [12, -12]].forEach(function(p){
     var l = new THREE.PointLight(0xff2020, 0.5, 7, 2);
     l.position.set(p[0], 3, p[1]);
@@ -895,7 +890,6 @@ function buildLevel3(){
     world.add(b);
   }
 
-  // кровавые следы на полу
   for(var i = 0; i < 8; i++){
     var splash = new THREE.Mesh(
       new THREE.CircleGeometry(0.35 + Math.random() * 0.5, 12),
@@ -1173,12 +1167,10 @@ var timeAcc = 0;
 function update(dt){
   timeAcc += dt;
 
-  // камера
   camera.position.set(player.x, 1.65, player.z);
   camera.rotation.y = player.yaw;
   camera.rotation.x = player.pitch;
 
-  // мерцание фонарика
   var flick = 1
     + Math.sin(timeAcc * 17.3) * 0.045
     + Math.sin(timeAcc * 31.7) * 0.028
@@ -1186,7 +1178,6 @@ function update(dt){
   flashLight.intensity = flashBase * flick;
   torch.intensity = torchBase * (0.9 + Math.sin(timeAcc * 2.3) * 0.06);
 
-  // ключ
   if(keyMesh){
     keyMesh.rotation.y += dt * 2.2;
     keyMesh.position.y = keyMesh.userData.baseY +
@@ -1196,7 +1187,6 @@ function update(dt){
     }
   }
 
-  // пыль
   for(var s = 0; s < dustSystems.length; s++){
     var d = dustSystems[s];
     var pos = d.pts.geometry.attributes.position;
@@ -1208,7 +1198,6 @@ function update(dt){
     pos.needsUpdate = true;
   }
 
-  // дверь
   if(door && door.open && door.t < 1){
     door.t = Math.min(1, door.t + dt * 0.85);
     var e = 1 - Math.pow(1 - door.t, 3);
@@ -1221,7 +1210,6 @@ function update(dt){
 
   if(state !== 'play') return;
 
-  // движение от клавиатуры
   var fx = 0, fz = 0;
   if(ctrlMode === 'pc'){
     if(keys['KeyW'] || keys['ArrowUp'])    fz -= 1;
@@ -1241,13 +1229,11 @@ function update(dt){
     move((s * fz + c * fx) * sp, (c * fz - s * fx) * sp);
   }
 
-  // подбор ключа
   if(keyMesh && !keyTaken){
     var dk = Math.hypot(player.x - keyMesh.position.x, player.z - keyMesh.position.z);
     if(dk < 1.5) takeKey();
   }
 
-  // дверь
   if(door && !door.open){
     var dd = Math.hypot(player.x - door.x, player.z - door.z);
     if(door.auto){ if(dd < 4.5) openDoor(); }
@@ -1284,8 +1270,15 @@ document.getElementById('hint').addEventListener('click', function(){
   lastTime = performance.now();
 });
 
-// первичная надпись на кнопке
 setCtrlMode(ctrlMode);
+
+/* === ПОКАЗ ЗАСТАВКИ ПРИ ЗАПУСКЕ === */
+setTimeout(function(){
+  var sp = document.getElementById('splash');
+  if(!sp) return;
+  sp.classList.add('hide');
+  setTimeout(function(){ sp.style.display = 'none'; }, 1100);
+}, 2600);
 
 /* =========================================================
    СКРИМЕР / ТАЙМЕР / КРАШ
@@ -1296,7 +1289,6 @@ function startEnding(){
 
   if(document.pointerLockElement) document.exitPointerLock();
 
-  // остановим "приятные" звуки
   clearTimeout(dripTimerId);
   clearTimeout(creepTimerId);
 
@@ -1331,7 +1323,6 @@ function startEnding(){
     el.textContent = t > 0 ? t : 0;
     if(t > 0){
       beep(880, 0.05, 0.12);
-      // усиливающийся гул
       if(audioNodes.droneGain && actx){
         audioNodes.droneGain.gain.setTargetAtTime(
           0.035 + (15 - t) * 0.008, actx.currentTime, 0.2);
@@ -1351,7 +1342,6 @@ function crash(){
   if(document.pointerLockElement) document.exitPointerLock();
   cancelAnimationFrame(rafId);
 
-  // убиваем звук
   try {
     if(audioNodes.drone) audioNodes.drone.forEach(function(o){ o.stop(); });
     if(actx) actx.close();
